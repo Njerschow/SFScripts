@@ -9,27 +9,31 @@ app.set('view engine', 'hbs');
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
-let ACCESS_TOKEN = null;
+let ACCESS_TOKEN    = null;
+const CLIENT_ID     = "3MVG9zlTNB8o8BA2JCJccajQ5dAB7DY5sl7EDrDTKmL14ZQEjd17JD.xWNw6UYeQ3doarZ7jBi1ThIIKENKUj";
+const CLIENT_SECRET = "921704916626058993";
+
 const authURL  = "https://login.salesforce.com/services/oauth2/authorize";
 const tokenURL = "https://login.salesforce.com/services/oauth2/token";
-const queryURL = "https://na59.salesforce.com/services/data/v20.0/query"
+const queryURL = "https://na59.salesforce.com/services/data/v20.0/query";
+
 const SFAuthParams = {
 	response_type : 'code',
-	client_id     : "3MVG9zlTNB8o8BA2JCJccajQ5dAB7DY5sl7EDrDTKmL14ZQEjd17JD.xWNw6UYeQ3doarZ7jBi1ThIIKENKUj",
+	client_id     : CLIENT_ID,
 	redirect_uri  : "http://localhost:3000/auth",
 	state         : null,
 };
 const SFTokenParams = {
-	grant_type    : "authorization_code",
-	client_secret : "921704916626058993",
-	client_id     : "3MVG9zlTNB8o8BA2JCJccajQ5dAB7DY5sl7EDrDTKmL14ZQEjd17JD.xWNw6UYeQ3doarZ7jBi1ThIIKENKUj",
+	grant_type    : "authorization_code", // needs to be authorization_code for token endpoint
+	client_secret : CLIENT_SECRET,
+	client_id     : CLIENT_ID,
 	redirect_uri  : "http://localhost:3000/token",
 	code          : null,
 	state         : null,
 };
 const SFQueryParams = {
 	q             : "SELECT name FROM Account lIMIT 6",
-}
+};
 
 const publicPath = path.resolve(__dirname, "public");
 app.use(express.static(publicPath));
