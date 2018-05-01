@@ -10,6 +10,8 @@ app.set('view engine', 'hbs');
 app.use(bodyParser.urlencoded({ extended: false }));
 
 let ACCESS_TOKEN    = null;
+const FILE_NAME     = "./public/AFAVM.csv"
+
 const CLIENT_ID     = "3MVG9zlTNB8o8BA2JCJccajQ5dAB7DY5sl7EDrDTKmL14ZQEjd17JD.xWNw6UYeQ3doarZ7jBi1ThIIKENKUj";
 const CLIENT_SECRET = "921704916626058993";
 
@@ -32,7 +34,7 @@ const SFTokenParams = {
 	state         : null,
 };
 const SFQueryParams = {
-	q             : "SELECT name FROM Account lIMIT 6",
+	q             : "SELECT Amount, Account.name FROM Opportunity WHERE FiscalYear=2015 and FIscalQuarter=1 and Account.name LIKE 'United Oil & Gas Corp.'",
 };
 
 const publicPath = path.resolve(__dirname, "public");
@@ -42,11 +44,11 @@ app.get('/', (req,res)=> {
 	console.log("new connection");
 	request.get({"url":authURL, "qs":SFAuthParams}, function (error, response, body) {
 		if (!error && response.statusCode == 200) {
-     		res.send(body); // Print the google web page.
+     		res.send(body); // Print the salesforce web page.
      	} else {
-     		res.send("Error: most likely redirect_uri mismatch between querystring parameters and connected app.")
+     		res.send("Error: " + error);
      	}
-  	});
+     });
 
 });
 
@@ -61,21 +63,82 @@ app.get('/auth', function(req,res) {
 			request.get({'headers': { 'Content-Type': 'application/x-www-form-urlencoded',
 				'Authorization': 'Bearer '+ACCESS_TOKEN }, 'url':queryURL, 'qs': SFQueryParams}, 
 				function(error, response, body) {
-				if (!error && response.statusCode == 200) {
+					if (!error && response.statusCode == 200) {
      				res.send(body); // Print the google web page.
+     			} else if (error) {
+     				res.send(error + '\n\n' + body);
      			} else {
-     				console.log(error);
+     				console.log(response);
      			}
      		});
- 		} else {
+		} else {
 			res.send("Error: most likely redirect_uri mismatch between querystring parameters and connected app.")
 		}
-  	});
+	});
 });
-
 
 app.listen(3000);
 console.log("listening on port 3000");
 
-//https://login.salesforce.com/services/oauth2/authorize?client_id=3MVG9zlTNB8o8BA2JCJccajQ5dAB7DY5sl7EDrDTKmL14ZQEjd17JD.xWNw6UYeQ3doarZ7jBi1ThIIKENKUj"
-//https://login.salesforce.com/services/oauth2/authorize?response_type=code&client_id=3MVG9zlTNB8o8BA2JCJccajQ5dAB7DY5sl7EDrDTKmL14ZQEjd17JD.xWNw6UYeQ3doarZ7jBi1ThIIKENKUj&redirect_uri=https%3A%2F%2Fwww.secondmind.ai
+////////////////////////
+
+var stdin = process.openStdin();
+let QueryTable = {}
+
+function readAVM() {
+	let file = new File(FILE_NAME);
+	let str = "";
+	while (!file.eof) {
+		str += file.readln() + "\n";
+	}
+	file.close();
+
+	rows = str.split(/\r?\n|\r/);
+	rows.forEach( (row)=> {
+		cols = row.split(/,/);
+		QueryTable[cols[0]] = cols[2];
+	});
+}
+
+function sendQuery(d) {
+	SFQueryParams.q = d.toString().trim();
+	if (ACCESS_TOKEN) {
+		request.get({'headers': { 'Content-Type': 'application/x-www-form-urlencoded',
+			'Authorization': 'Bearer '+ACCESS_TOKEN }, 'url':queryURL, 'qs': SFQueryParams}, 
+			function(error, response, body) {
+				if (!error && response.statusCode == 200) {
+					let data = JSON.parse(body);
+					data.records.forEach((ele) => {
+						console.log(ele.Account);
+					});
+				}
+     				//res.send(body); // Print the google web page.
+     			else if (error) {
+
+     				//res.send(error + '\n\n' + body);
+     			} else {
+     				console.log(response);
+     			}
+     		});
+	}
+
+}
+
+function resolveQuery(phrase, X) {
+	
+
+}
+
+
+function main() {
+	stdin.addListener("data", sendQuery);
+
+
+
+}
+
+main();
+
+
+
+
