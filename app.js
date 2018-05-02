@@ -1,7 +1,8 @@
 const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
-var request = require('request');
+const request = require('request');
+const fs = require('fs');
 
 const app = express();
 
@@ -86,12 +87,7 @@ var stdin = process.openStdin();
 let QueryTable = {}
 
 function readAVM() {
-	let file = new File(FILE_NAME);
-	let str = "";
-	while (!file.eof) {
-		str += file.readln() + "\n";
-	}
-	file.close();
+	let str = fs.readFileSync(FILE_NAME,'utf8');
 
 	rows = str.split(/\r?\n|\r/);
 	rows.forEach( (row)=> {
@@ -100,8 +96,16 @@ function readAVM() {
 	});
 }
 
+function main() {
+
+	readAVM();
+
+	//phrase comes into the console. change this to change where the query comes from.
+	stdin.addListener("data", sendQuery); 
+}
+
 function sendQuery(d) {
-	SFQueryParams.q = d.toString().trim();
+	SFQueryParams.q = resolveQuery(d.toString().trim(), "United Oil & Gas Corp.");
 	if (ACCESS_TOKEN) {
 		request.get({'headers': { 'Content-Type': 'application/x-www-form-urlencoded',
 			'Authorization': 'Bearer '+ACCESS_TOKEN }, 'url':queryURL, 'qs': SFQueryParams}, 
@@ -113,7 +117,7 @@ function sendQuery(d) {
 					});
 				}
      				//res.send(body); // Print the google web page.
-     			else if (error) {
+     				else if (error) {
 
      				//res.send(error + '\n\n' + body);
      			} else {
@@ -121,11 +125,10 @@ function sendQuery(d) {
      			}
      		});
 	}
-
 }
 
 function resolveQuery(phrase, X) {
-	let date  new Date(Date.now());
+	let date = new Date(Date.now());
 	const year = date.getUTCFullYear();
 	const month = date.getUTCMonth()+1;
 	const quarter = Math.ceil(month/3);
@@ -137,7 +140,7 @@ function resolveQuery(phrase, X) {
 	//Code to get action taken --> action
 	switch (action) {
 		case "Get first quarter sales number":
-		Query = "SELECT Amount, Account.name FROM Opportunity WHERE FiscalYear="+year+" and FIscalQuarter=1 and Account.name LIKE '"+X+"'";
+		Query = "SELECT Amount, Account.name FROM Opportunity WHERE FiscalYear="+year+" and FIscalQuarter=1 and Account.name LIKE '"+X+"'"
 		break;
 		case "Get second quarter sales numberr":
 		Query = "SELECT Amount, Account.name FROM Opportunity WHERE FiscalYear="+year+" and FIscalQuarter=2 and Account.name LIKE '"+X+"'";
@@ -222,16 +225,9 @@ function resolveQuery(phrase, X) {
 		break;
 		case "Get support contact":
 		break;
-
 	}
 
-}
-
-
-function main() {
-	stdin.addListener("data", sendQuery);
-	readAVM();
-
+	return Query;
 
 }
 
