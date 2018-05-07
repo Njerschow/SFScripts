@@ -35,7 +35,8 @@ const SFTokenParams = {
 	state         : null,
 };
 const SFQueryParams = {
-	q             : "SELECT Amount, Account.name FROM Opportunity WHERE FiscalYear=2015 and FIscalQuarter=1 and Account.name LIKE 'United Oil & Gas Corp.'",
+	//q             : "SELECT Amount, Account.name FROM Opportunity WHERE FiscalYear=2015 and FIscalQuarter=1 and Account.name LIKE 'United Oil & Gas Corp
+	q : "SELECT Name, Amount, CloseDate, TotalOpportunityQuantity, ForecastCategoryName, StageName FROM Opportunity",
 };
 
 const publicPath = path.resolve(__dirname, "public");
@@ -100,30 +101,33 @@ function main() {
 
 	readAVM();
 
+	let onSuccess = function (data) {
+		data.records.forEach((ele) => {
+			console.log(ele);
+		});
+	};
+
+	let callback = function (error, response, body) {
+		if (!error && response.statusCode == 200) {
+			let data = JSON.parse(body);
+			onSuccess(data);
+		} else if (error) {
+		
+		} else {
+     		console.log(response);
+     	}
+    };
+
 	//phrase comes into the console. change this to change where the query comes from.
-	stdin.addListener("data", sendQuery); 
+	stdin.addListener("data", (data) => { sendQuery(data, callback) });
 }
 
-function sendQuery(d) {
-	SFQueryParams.q = resolveQuery(d.toString().trim(), "United Oil & Gas Corp.");
+function sendQuery(d, callback) {
+	SFQueryParams.q = SFQueryParams.q;
+	//SFQueryParams.q = resolveQuery(d.toString().trim(), "United Oil & Gas Corp.");
 	if (ACCESS_TOKEN) {
 		request.get({'headers': { 'Content-Type': 'application/x-www-form-urlencoded',
-			'Authorization': 'Bearer '+ACCESS_TOKEN }, 'url':queryURL, 'qs': SFQueryParams}, 
-			function(error, response, body) {
-				if (!error && response.statusCode == 200) {
-					let data = JSON.parse(body);
-					data.records.forEach((ele) => {
-						console.log(ele.Account);
-					});
-				}
-     				//res.send(body); // Print the google web page.
-     				else if (error) {
-
-     				//res.send(error + '\n\n' + body);
-     			} else {
-     				console.log(response);
-     			}
-     		});
+			'Authorization': 'Bearer '+ACCESS_TOKEN }, 'url':queryURL, 'qs': SFQueryParams}, callback);
 	}
 }
 
@@ -137,99 +141,200 @@ function resolveQuery(phrase, X) {
 
 	let action = QueryTable[phrase];
 
+	let onSuccess = function (data) {
+		data.records.forEach((ele) => {
+			console.log(ele);
+		});
+		return data.records;
+	};
+
+	//default callback
+	let callback = function (error, response, body) {
+		if (!error && response.statusCode == 200) {
+			let data = JSON.parse(body);
+			returned = onSuccess(data);
+			console.log(returned);
+		} else if (error) {
+		
+		} else {
+     		console.log(response);
+     	}
+    };
+
+    const totalSalesNumber = function (data) {
+		let Amount = data.records.reduce((acc, ele) => {
+			return acc+ele;
+		});
+		return Amount;
+    };
+
 	//Code to get action taken --> action
 	switch (action) {
 		case "Get first quarter sales number":
 		Query = "SELECT Amount, Account.name FROM Opportunity WHERE FiscalYear="+year+" and FIscalQuarter=1 and Account.name LIKE '"+X+"'"
+		onSuccess=totalSalesNumber;
 		break;
 		case "Get second quarter sales numberr":
 		Query = "SELECT Amount, Account.name FROM Opportunity WHERE FiscalYear="+year+" and FIscalQuarter=2 and Account.name LIKE '"+X+"'";
+		onSuccess=totalSalesNumber;
 		break;
+
 		case "Get third quarter sales number":
 		Query = "SELECT Amount, Account.name FROM Opportunity WHERE FiscalYear="+year+" and FIscalQuarter=3 and Account.name LIKE '"+X+"'";
+		onSuccess=totalSalesNumber;
 		break;
+
 		case "Get fourth quarter sales number":
 		Query = "SELECT Amount, Account.name FROM Opportunity WHERE FiscalYear="+year+" and FIscalQuarter=4 and Account.name LIKE '"+X+"'";
+		onSuccess=totalSalesNumber;
 		break;
+
 		case "Get last quarter sales number":
 		Query = "SELECT Amount, Account.name FROM Opportunity WHERE FiscalYear="+year+" and FIscalQuarter="+(quarter-1)+" and Account.name LIKE '"+X+"'";
+		onSuccess=totalSalesNumber;
 		break;
+
 		case "Get current quarter sales number":
 		Query = "SELECT Amount, Account.name FROM Opportunity WHERE FiscalYear="+year+" and FIscalQuarter="+quarter+" and Account.name LIKE '"+X+"'";
+		onSuccess=totalSalesNumber;
 		break;
+
 		case "Get last year sales number":
 		Query = "SELECT Amount, Account.name FROM Opportunity WHERE FiscalYear="+(year-1)+" and Account.name LIKE '"+X+"'";
+		onSuccess=totalSalesNumber;
 		break;
+
 		case "Get current year sales number":
 		Query = "SELECT Amount, Account.name FROM Opportunity WHERE FiscalYear="+year+" and Account.name LIKE '"+X+"'";
+		onSuccess=totalSalesNumber;
 		break;
+
 		case "Get last sale amount for client":
+		Query = "SELECT Amount, CloseDate, StageName FROM Opportunity WHERE Account.name LIKE '"+X+"' and StageName LIKE 'Closed Won'";
+		onSuccess = function(data) {
+			let saleAmount = data.records.reduce( (acc, ele) => {
+				console.log(acc);
+				let closeDate = new Date(ele.CloseDate);
+				if (date-closeDate < acc[1]) { //get most recent
+					return [ele.Amount, date-closeDate];
+				}
+				return acc;
+			}, [null,Infinity])[0];
+			return saleAmount;
+		};
 		break;
+
 		case "Get last sale UNITS amount for client":
+		Query = "SELECT TotalOpportunityQuantity, CloseDate, StageName FROM Opportunity WHERE Account.name LIKE '"+X+"' and StageName LIKE 'Closed Won'";
+		onSuccess = function(data) {
+			let Quantity = data.records.reduce( (acc, ele) => {
+				console.log(acc);
+				let closeDate = new Date(ele.CloseDate);
+				if (date-closeDate < acc[1]) { //get most recent
+					return [ele.TotalOpportunityQuantity, date-closeDate];
+				}
+				return acc;
+			}, [null,Infinity])[0];
+			return Quantity;
+		};
 		break;
+
 		case "Pull last call AND meeting date with X":
 		break;
+
 		case "Pull last meeting date with X":
 		break;
+
 		case "Pull last call date with X":
 		break;
+
 		case "Pull the sales or customer support form called X":
 		break;
+
 		case "Pull the status for the Support Ticket #":
 		break;
+
 		case "Pull the status for open / latest Support Ticket PLUS Email":
 		break;
+
 		case "Pull the status for the Support Ticket":
 		break;
+
 		case "Pull status for open / latest Support Ticket":
 		break;
+
 		case "Pull Stage / Status and Next Steps":
 		break;
+
 		case "Pull Next Steps":
 		break;
+
 		case "Pull activity date":
 		break;
+
 		case "Get close date of last sale":
 		break;
+
 		case "Get main contact person at client ":
 		break;
+
 		case "Get main sales contact for client ":
 		break;
+
 		case "Get ALL sales contacts for client ":
 		break;
+
 		case "Get product purchased":
 		break;
+
 		case "Get # of seats sold in last sale":
 		break;
+
 		case "Get # of units sold in last sale":
 		break;
+
 		case "Get date proposal was sent":
 		break;
+
 		case "Get close probability":
 		break;
+
 		case "Get pricing for X":
 		break;
+
 		case "Get pricing on last sale for client":
 		break;
+
 		case "Get contact info":
 		break;
+
 		case "Get renewal date":
 		break;
+
 		case "Get notes":
 		break;
+
 		case "Get employee number for X":
 		break;
+
 		case "Get annual revenue for X":
 		break;
+
 		case "Get deal value ":
 		break;
+
 		case "Get support contact":
 		break;
+
 	}
 
-	return Query;
+	return [Query, callback];
 
 }
+
+/* NOTES:
+For last sale number/UNITS with client, Think about changing from the Opportunity table to the Case table since it has a Close date and a link to Asset
+*/
 
 main();
 
