@@ -114,7 +114,8 @@ function main() {
 		} else if (error) {
 		
 		} else {
-     		console.log(response);
+     		console.log(response.body);
+     		
      	}
     };
 
@@ -123,7 +124,7 @@ function main() {
 }
 
 function sendQuery(d, callback) {
-	SFQueryParams.q = SFQueryParams.q;
+	SFQueryParams.q = d.toString().trim();
 	//SFQueryParams.q = resolveQuery(d.toString().trim(), "United Oil & Gas Corp.");
 	if (ACCESS_TOKEN) {
 		request.get({'headers': { 'Content-Type': 'application/x-www-form-urlencoded',
@@ -157,7 +158,7 @@ function resolveQuery(phrase, X) {
 		} else if (error) {
 		
 		} else {
-     		console.log(response);
+     		console.log("big fat error");
      	}
     };
 
@@ -210,120 +211,119 @@ function resolveQuery(phrase, X) {
 		break;
 
 		case "Get last sale amount for client":
-		Query = "SELECT Amount, CloseDate, StageName FROM Opportunity WHERE Account.name LIKE '"+X+"' and StageName LIKE 'Closed Won'";
-		onSuccess = function(data) {
-			let saleAmount = data.records.reduce( (acc, ele) => {
-				console.log(acc);
-				let closeDate = new Date(ele.CloseDate);
-				if (date-closeDate < acc[1]) { //get most recent
-					return [ele.Amount, date-closeDate];
-				}
-				return acc;
-			}, [null,Infinity])[0];
-			return saleAmount;
-		};
+		Query = "SELECT Amount, CloseDate, StageName FROM Opportunity WHERE Account.name LIKE '"+X+"' and StageName LIKE 'Closed Won' ORDER BY CloseDate DESC LIMIT 1";
 		break;
 
 		case "Get last sale UNITS amount for client":
-		Query = "SELECT TotalOpportunityQuantity, CloseDate, StageName FROM Opportunity WHERE Account.name LIKE '"+X+"' and StageName LIKE 'Closed Won'";
-		onSuccess = function(data) {
-			let Quantity = data.records.reduce( (acc, ele) => {
-				console.log(acc);
-				let closeDate = new Date(ele.CloseDate);
-				if (date-closeDate < acc[1]) { //get most recent
-					return [ele.TotalOpportunityQuantity, date-closeDate];
-				}
-				return acc;
-			}, [null,Infinity])[0];
-			return Quantity;
-		};
+		Query = "SELECT TotalOpportunityQuantity, CloseDate, StageName FROM Opportunity WHERE Account.name LIKE '"+X+"' and StageName LIKE 'Closed Won' ORDER BY CloseDate DESC LIMIT 1";
 		break;
 
-		case "Pull last call AND meeting date with X":
+		case "Pull last call AND meeting date with X": //TODO: fix meeting date
+		Query = "SELECT ActivityDate,Subject,Description,Status FROM Task WHERE Account.name LIKE '"+X+"' ORDER BY ActivityDate DESC LIMIT 1";
 		break;
 
-		case "Pull last meeting date with X":
+		case "Pull last meeting date with X": //TODO: change to meeting date
+		Query = "SELECT ActivityDate,Subject,Description,Status FROM Task WHERE Account.name LIKE '"+X+"' ORDER BY CloseDate DESC LIMIT 1";
 		break;
 
 		case "Pull last call date with X":
+		Query = "SELECT ActivityDate,Subject,Description,Status FROM Task WHERE Account.name LIKE '"+X+"' ORDER BY CloseDate DESC LIMIT 1";
 		break;
 
-		case "Pull the sales or customer support form called X":
+		case "Pull the sales or customer support form called X": // wasnt sure how to do this
 		break;
 
-		case "Pull the status for the Support Ticket #":
+		case "Pull the status for the Support Ticket #": // wasnt sure how to do this
 		break;
 
-		case "Pull the status for open / latest Support Ticket PLUS Email":
+		case "Pull the status for open / latest Support Ticket PLUS Email": // wasnt sure how to do this
 		break;
 
-		case "Pull the status for the Support Ticket":
+		case "Pull the status for the Support Ticket": // wasnt sure how to do this
 		break;
 
-		case "Pull status for open / latest Support Ticket":
+		case "Pull status for open / latest Support Ticket": // wasnt sure how to do this
 		break;
 
 		case "Pull Stage / Status and Next Steps":
+		Query = "SELECT StageName, NextStep, CloseDate From Opportunity WHERE Account.name LIKE '"+X+"' ORDER BY CloseDate DESC LIMIT 1";
 		break;
 
-		case "Pull Next Steps":
+		case "Pull Next Steps": //Opportunity.NextStep
+		Query = "SELECT NextStep, CloseDate From Opportunity WHERE Account.name LIKE '"+X+"' ORDER BY CloseDate DESC LIMIT 1";
 		break;
 
-		case "Pull activity date":
+		case "Pull activity date": //Task.ActivityDate
+		Query = "SELECT ActivityDate From Task WHERE Account.name LIKE '"+X+"'";
 		break;
 
-		case "Get close date of last sale":
+		case "Get close date of last sale": //Opportunity.CloseDate
+		Query = "SELECT CloseDate From Opportunity WHERE Account.name LIKE '"+X+"' ORDER BY CloseDate DESC LIMIT 1";
 		break;
 
-		case "Get main contact person at client ":
+		case "Get main contact person at client ": 
+		Query = "SELECT ContactEmail,Contact.Name, ContactPhone, ContactMobile FROM Case WHERE Account.name LIKE '"+X+"'";
 		break;
 
 		case "Get main sales contact for client ":
+		Query = "SELECT ContactEmail,Contact.Name, ContactPhone, ContactMobile FROM Case WHERE Account.name LIKE '"+X+"'";
 		break;
 
 		case "Get ALL sales contacts for client ":
+		Query = "SELECT ContactEmail,Contact.Name, ContactPhone, ContactMobile FROM Case WHERE Account.name LIKE '"+X+"'";
 		break;
 
 		case "Get product purchased":
+		Query = "SELECT Product2.Name, Opportunity.CloseDate From OpportunityLineItem WHERE Account.name LIKE '"+X+"' and StageName LIKE 'Closed Won' ORDER BY CloseDate DESC LIMIT 1";// This isnt right, not sure why
 		break;
 
-		case "Get # of seats sold in last sale":
+		case "Get # of seats sold in last sale": //Not sure what is meant by seats
+
 		break;
 
-		case "Get # of units sold in last sale":
+		case "Get # of units sold in last sale": 
+		Query = "SELECT TotalOpportunityQuantity, CloseDate, StageName FROM Opportunity WHERE Account.name LIKE '"+X+"' and StageName LIKE 'Closed Won' ORDER BY CloseDate DESC LIMIT 1";
 		break;
 
-		case "Get date proposal was sent":
+		case "Get date proposal was sent": //Not sure what to do here
 		break;
 
 		case "Get close probability":
+		Query = "SELECT Probability FROM Opportunity WHERE Account.name LIKE '"+X+"'";
 		break;
 
-		case "Get pricing for X":
+		case "Get pricing for X": // Not sure where to find the price of products
 		break;
 
 		case "Get pricing on last sale for client":
+		Query = "SELECT ExpectedRevenue FROM Opportunity WHERE Account.name LIKE '"+X+"' and StageName LIKE 'Closed Won' ORDER BY CloseDate DESC LIMIT 1";
 		break;
 
 		case "Get contact info":
+		Query = "SELECT ContactEmail,Contact.Name, ContactPhone, ContactMobile FROM Case WHERE Account.name LIKE '"+X+"'";
 		break;
 
 		case "Get renewal date":
 		break;
 
 		case "Get notes":
+		Query = "SELECT Description FROM Opportunity Where Account.name LIKE '"+X+"'";
 		break;
 
 		case "Get employee number for X":
+		Query = "SELECT EmployeeNumber FROM User"; //Figure out how to filter by Account.Name
 		break;
 
 		case "Get annual revenue for X":
+		Query = "SELECT AnnualRevenue FROM Account WHERE Account.name LIKE '"+X+"' ";
 		break;
 
 		case "Get deal value ":
+		Query = "SELECT ExpectedRevenue FROM Opportunity WHERE Account.name LIKE '"+X+"'";
 		break;
 
 		case "Get support contact":
+		Query = "SELECT ContactEmail,Contact.Name, ContactPhone, ContactMobile FROM Case WHERE Account.name LIKE '"+X+"'";//TODO: not sure what is meant by support contact
 		break;
 
 	}
