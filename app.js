@@ -3,41 +3,44 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const request = require('request');
 const fs = require('fs');
+const url = require('url');
+require('dotenv').config();
+CONFIG = require('./config.json');
 
 const app = express();
-
-app.set('view engine', 'hbs');
+const port = process.env.PORT || 3000;
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
 let ACCESS_TOKEN    = null;
-const FILE_NAME     = "./public/AFAVM.csv"
+const FILE_NAME     = CONFIG.salesforce.AVMFile;
 
-const CLIENT_ID     = "3MVG9zlTNB8o8BA2JCJccajQ5dAB7DY5sl7EDrDTKmL14ZQEjd17JD.xWNw6UYeQ3doarZ7jBi1ThIIKENKUj";
-const CLIENT_SECRET = "921704916626058993";
+const CLIENT_ID     = process.env.CLIENT_ID;
+const CLIENT_SECRET = process.env.CLIENT_SECRET;
 
-const authURL  = "https://login.salesforce.com/services/oauth2/authorize";
-const tokenURL = "https://login.salesforce.com/services/oauth2/token";
-const queryURL = "https://na59.salesforce.com/services/data/v20.0/query";
+const authURL  = url.parse(CONFIG.salesforce.oauth2.baseURL+CONFIG.salesforce.oauth2.endpoints.auth);
+const tokenURL = url.parse(CONFIG.salesforce.oauth2.baseURL+CONFIG.salesforce.oauth2.endpoints.token);
+const queryURL = url.parse(CONFIG.salesforce.datacenter.baseURL+CONFIG.salesforce.datacenter.endpoints.query);
 
-const SFAuthParams = {
-	response_type : 'code',
-	client_id     : CLIENT_ID,
-	redirect_uri  : "http://localhost:3000/auth",
-	state         : null,
-};
-const SFTokenParams = {
-	grant_type    : "authorization_code", // needs to be authorization_code for token endpoint
-	client_secret : CLIENT_SECRET,
-	client_id     : CLIENT_ID,
-	redirect_uri  : "http://localhost:3000/token",
-	code          : null,
-	state         : null,
-};
-const SFQueryParams = {
-	//q             : "SELECT Amount, Account.name FROM Opportunity WHERE FiscalYear=2015 and FIscalQuarter=1 and Account.name LIKE 'United Oil & Gas Corp
-	q : "SELECT Name, Amount, CloseDate, TotalOpportunityQuantity, ForecastCategoryName, StageName FROM Opportunity",
-};
+const SFAuthParams = CONFIG.salesforce.SFAuthParams;
+SFAuthParams['client_id'] = CLIENT_ID;
+
+const SFTokenParams = CONFIG.salesforce.SFTokenParams;
+SFTokenParams['client_id'] = CLIENT_ID;
+SFTokenParams['client_secret'] = CLIENT_SECRET;
+
+const SFQueryParams = CONFIG.salesforce.SFQueryParams;
+
+app.get('/', (req,res)=> {
+	console.log("new connection");
+	request.get({"url":authURL, "qs":SFAuthParams}, function (error, response, body) {
+		if (!error && response.statusCode == 200) {
+     		res.send(body); // Print the salesforce web page.
+     	} else {
+     		res.send("Error: " + error);
+     	}
+     });
+});
 
 const publicPath = path.resolve(__dirname, "public");
 app.use(express.static(publicPath));
