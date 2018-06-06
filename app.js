@@ -3,41 +3,33 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const request = require('request');
 const fs = require('fs');
+const url = require('url');
+require('dotenv').config();
+CONFIG = require('./config.json');
 
 const app = express();
-
-app.set('view engine', 'hbs');
+const port = process.env.PORT || 3000;
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
 let ACCESS_TOKEN    = null;
-const FILE_NAME     = "./public/AFAVM.csv"
+const FILE_NAME     = CONFIG.salesforce.AVMFile;
 
-const CLIENT_ID     = "3MVG9zlTNB8o8BA2JCJccajQ5dAB7DY5sl7EDrDTKmL14ZQEjd17JD.xWNw6UYeQ3doarZ7jBi1ThIIKENKUj";
-const CLIENT_SECRET = "921704916626058993";
+const CLIENT_ID     = process.env.CLIENT_ID;
+const CLIENT_SECRET = process.env.CLIENT_SECRET;
 
-const authURL  = "https://login.salesforce.com/services/oauth2/authorize";
-const tokenURL = "https://login.salesforce.com/services/oauth2/token";
-const queryURL = "https://na59.salesforce.com/services/data/v20.0/query";
+const authURL  = url.parse(CONFIG.salesforce.oauth2.baseURL+CONFIG.salesforce.oauth2.endpoints.auth);
+const tokenURL = url.parse(CONFIG.salesforce.oauth2.baseURL+CONFIG.salesforce.oauth2.endpoints.token);
+const queryURL = url.parse(CONFIG.salesforce.datacenter.baseURL+CONFIG.salesforce.datacenter.endpoints.query);
 
-const SFAuthParams = {
-	response_type : 'code',
-	client_id     : CLIENT_ID,
-	redirect_uri  : "http://localhost:3000/auth",
-	state         : null,
-};
-const SFTokenParams = {
-	grant_type    : "authorization_code", // needs to be authorization_code for token endpoint
-	client_secret : CLIENT_SECRET,
-	client_id     : CLIENT_ID,
-	redirect_uri  : "http://localhost:3000/token",
-	code          : null,
-	state         : null,
-};
-const SFQueryParams = {
-	//q             : "SELECT Amount, Account.name FROM Opportunity WHERE FiscalYear=2015 and FIscalQuarter=1 and Account.name LIKE 'United Oil & Gas Corp
-	q : "SELECT Name, Amount, CloseDate, TotalOpportunityQuantity, ForecastCategoryName, StageName FROM Opportunity",
-};
+const SFAuthParams = CONFIG.salesforce.SFAuthParams;
+SFAuthParams['client_id'] = CLIENT_ID;
+
+const SFTokenParams = CONFIG.salesforce.SFTokenParams;
+SFTokenParams['client_id'] = CLIENT_ID;
+SFTokenParams['client_secret'] = CLIENT_SECRET;
+
+const SFQueryParams = CONFIG.salesforce.SFQueryParams;
 
 const publicPath = path.resolve(__dirname, "public");
 app.use(express.static(publicPath));
@@ -58,26 +50,35 @@ app.get('/auth', function(req,res) {
 	SFTokenParams.code  = req.query.code;
 	SFTokenParams.state = req.query.state; //optional, must be passed in above during the auth phase.
 
-	request.post({"url":tokenURL, "qs":SFTokenParams}, function (error, response, body) {
-		if (!error && response.statusCode == 200) {
-			let data = JSON.parse(body);
-			ACCESS_TOKEN = data['access_token'];
-			request.get({'headers': { 'Content-Type': 'application/x-www-form-urlencoded',
-				'Authorization': 'Bearer '+ACCESS_TOKEN }, 'url':queryURL, 'qs': SFQueryParams}, 
-				function(error, response, body) {
-					if (!error && response.statusCode == 200) {
-     				res.send(body); // Print the google web page.
-     			} else if (error) {
-     				res.send(error + '\n\n' + body);
-     			} else {
-     				console.log(response);
-     			}
-     		});
-		} else {
-			res.send("Error: most likely redirect_uri mismatch between querystring parameters and connected app.")
-		}
-	});
+	res.sendFile(path.join(__dirname+'/public/query.html'));
 });
+
+
+
+queryCallback = function(error, response, body) {
+	if (!error && response.statusCode == 200) {
+		res.send("Query: "+SFQueryParams.q+"/n/n/n"+body);
+	}
+}
+
+app.get('/query', function(req, res) {
+	if (!ACCESS_TOKEN) {
+		SFQueryParams.q = req.querystring.query;
+		res.redirect('/');
+	}
+	
+	sendQuery(req.querystring.query, queryCallback);
+});
+
+app.get('/phrase', function(req,res) {
+	SFQueryParams.q = resolveQuery(req.querystring.phrase, req.querystring.client);
+	if (!ACCESS_TOKEN) {
+		res.redirect('/');
+	}
+	
+	sendQuery(SFQueryParams.q, queryCallback);
+});
+
 
 app.listen(3000);
 console.log("listening on port 3000");
@@ -311,7 +312,7 @@ function resolveQuery(phrase, X) {
 		break;
 
 		case "Get employee number for X":
-		Query = "SELECT EmployeeNumber FROM User"; //Figure out how to filter by Account.Name
+		Query = "SELECT EmployeeNumber FROM User"; //Figure out how to filter by Account.Name since the User table does not have a relationship with Account
 		break;
 
 		case "Get annual revenue for X":
@@ -328,7 +329,7 @@ function resolveQuery(phrase, X) {
 
 	}
 
-	return [Query, callback];
+	return Query;
 
 }
 

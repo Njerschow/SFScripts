@@ -1,0 +1,32 @@
+{
+	"salesforce": {
+		"AVMFile" : "./public/AFAVM.csv",
+		"oauth2": {
+			"baseURL" : "https://login.salesforce.com",
+			"endpoints" : {
+				"auth" : "/services/oauth2/authorize",
+				"token" : "/services/oauth2/token"
+			}
+		},
+		"datacenter" : {
+			"baseURL" : "https://na59.salesforce.com",
+			"endpoints": {
+        		"query": "/services/data/v20.0/query"
+      		}
+		},
+		"SFAuthParams" : {
+			"response_type" : "code",
+			"client_id" : "CLIENT_ID",
+			"redirect_uri"  : "http://localhost:3000/auth"
+		},
+		"SFTokenParams" : {
+			"grant_type"    : "authorization_code",
+			"client_secret" : "CLIENT_SECRET",
+			"client_id"     : "CLIENT_ID",
+			"redirect_uri"  : "http://localhost:3000/token"
+		},
+		"SFQueryParams" : {
+			"q" : "SELECT Name, Amount, CloseDate, TotalOpportunityQuantity, ForecastCategoryName, StageName FROM Opportunity"
+		}
+	}
+}
