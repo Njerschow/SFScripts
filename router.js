@@ -26,6 +26,17 @@ SFTokenParams['client_secret'] = CLIENT_SECRET;
 
 const SFQueryParams = CONFIG.salesforce.SFQueryParams;
 
+console.log(CONFIG);
+
+router.get('/', (req,res) => {
+	res.redirect("/authorize" + authURL.path);
+});
+
+// router.get('/token', (req,res) => {
+// 	SFTokenParams.code  = req.query.code;
+// 	SFTokenParams.state = req.query.state;
+// 	res.redirect("/gettoken"+tokenURL.path);
+// });
 
 router.get('/', (req,res)=> {
 	console.log("new connection");
@@ -52,7 +63,7 @@ router.get('/', (req,res)=> {
 
 });
 
-router.get('/auth', function(req,res) {
+router.get('/token', function(req,res) {
 	SFTokenParams.code  = req.query.code;
 	SFTokenParams.state = req.query.state; //optional, must be passed in above during the auth phase.
 
@@ -93,12 +104,12 @@ var stdin = process.openStdin();
 let QueryTable = {}
 
 function readAVM() {
-	let str = fs.readFileSync(FILE_NAME,'utf8');
-
-	rows = str.split(/\r?\n|\r/);
-	rows.forEach( (row)=> {
-		cols = row.split(/,/);
-		QueryTable[cols[0]] = cols[1];
+	fs.readFile(FILE_NAME,'utf8', function(err, data) {
+		let rows = data.split(/\r?\n|\r/);
+		rows.forEach( (row)=> {
+			cols = row.split(/,/);
+			QueryTable[cols[0]] = cols[1];
+		});
 	});
 }
 
@@ -138,7 +149,8 @@ main();
 
 queryCallback = function(res, error, response, body) {
 	if (!error && response.statusCode == 200) {
-		res.send("Query: "+SFQueryParams.q+"<br> <br> <br>"+body);
+
+		res.send(JSON.parse('{ "Query": "'+SFQueryParams.q+'", "result":['+body+']}'));
 	}
 }
 
@@ -354,7 +366,12 @@ function resolveQuery(phrase, X) {
 
 
 module.exports = {
+	authURL,
+	tokenURL,
+	queryURL,
 	router,
 	ACCESS_TOKEN,
-	SFQueryParams
+	SFQueryParams,
+	SFAuthParams,
+	SFTokenParams
 };
