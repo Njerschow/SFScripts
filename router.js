@@ -29,7 +29,11 @@ const SFQueryParams = CONFIG.salesforce.SFQueryParams;
 console.log(CONFIG);
 
 router.get('/', (req,res) => {
-	res.redirect("/authorize" + authURL.path);
+	if (!ACCESS_TOKEN) {
+		res.redirect('/oauth2');
+	} else {
+		res.redirect('/query')
+	}	
 });
 
 // router.get('/token', (req,res) => {
@@ -38,53 +42,61 @@ router.get('/', (req,res) => {
 // 	res.redirect("/gettoken"+tokenURL.path);
 // });
 
-router.get('/', (req,res)=> {
-	console.log("new connection");
-	request.get({"url":authURL, "qs":SFAuthParams}, function (error, response, body) {
-		if (!error && response.statusCode == 200) {
-     		res.send(body); // Print the salesforce web page.
-     	} else {
-     		res.send("Error: " + error);
-     	}
-     });
-});
+// router.get('/', (req,res)=> {
+// 	console.log("new connection");
+// 	request.get({"url":authURL, "qs":SFAuthParams}, function (error, response, body) {
+// 		if (!error && response.statusCode == 200) {
+//      		res.send(body); // Print the salesforce web page.
+//      	} else {
+//      		res.send("Error: " + error);
+//      	}
+//      });
+// });
 
 
 
-router.get('/', (req,res)=> {
-	console.log("new connection");
-	request.get({"url":authURL, "qs":SFAuthParams}, function (error, response, body) {
-		if (!error && response.statusCode == 200) {
-     		res.send(body); // Print the salesforce web page.
-     	} else {
-     		res.send("Error: " + error);
-     	}
-     });
+// router.get('/', (req,res)=> {
+// 	console.log("new connection");
+// 	request.get({"url":authURL, "qs":SFAuthParams}, function (error, response, body) {
+// 		if (!error && response.statusCode == 200) {
+//      		res.send(body); // Print the salesforce web page.
+//      	} else {
+//      		res.send("Error: " + error);
+//      	}
+//      });
 
-});
+// });
 
-router.get('/token', function(req,res) {
-	SFTokenParams.code  = req.query.code;
-	SFTokenParams.state = req.query.state; //optional, must be passed in above during the auth phase.
+// router.get('/token', function(req,res) {
+// 	SFTokenParams.code  = req.query.code;
+// 	SFTokenParams.state = req.query.state; //optional, must be passed in above during the auth phase.
 
-	request.post({"url":tokenURL, "qs":SFTokenParams}, function (error, response, body) {
-		if (!error && response.statusCode == 200) {
-			let data = JSON.parse(body);
-			ACCESS_TOKEN = data['access_token'];
-			res.sendFile(path.join(__dirname+'/public/query.html'));
-		} else {
-			res.send("Error: most likely redirect_uri mismatch between querystring parameters and connected router.")
-		}
-	});
-});
+
+// 	res.redirect(tokenURL.path);
+// 	// request.post({"url":tokenURL, "qs":SFTokenParams}, function (error, response, body) {
+// 	// 	if (!error && response.statusCode == 200) {
+// 	// 		let data = JSON.parse(body);
+// 	// 		ACCESS_TOKEN = data['access_token'];
+// 	// 		res.sendFile(path.join(__dirname+'/public/query.html'));
+// 	// 	} else {
+// 	// 		res.send("Error: most likely redirect_uri mismatch between querystring parameters and connected router.")
+// 	// 	}
+// 	// });
+// });
+
+// router.get('/token', function(req,res) {
+// 	console.log(req);
+// });
 
 router.get('/query', function(req, res) {
+	ACCESS_TOKEN = CONFIG.AT;
+	console.log("ACCESS_TOKEN: "+ACCESS_TOKEN);
 	if (!ACCESS_TOKEN) {
 		SFQueryParams.q = req.query.query;
 		res.redirect('/');
+	} else {
+		sendQuery(req.query.query, queryCallback.bind(this, res));
 	}
-	
-	sendQuery(req.query.query, queryCallback.bind(this, res));
 });
 
 router.get('/phrase', function(req,res) {
@@ -206,7 +218,7 @@ function resolveQuery(phrase, X) {
 		Query = "SELECT Amount, Account.name FROM Opportunity WHERE FiscalYear="+year+" and FIscalQuarter=1 and Account.name LIKE '"+X+"'"
 		onSuccess=totalSalesNumber;
 		break;
-		case "Get second quarter sales numberr":
+		// case "Get second quarter sales number":
 		Query = "SELECT Amount, Account.name FROM Opportunity WHERE FiscalYear="+year+" and FIscalQuarter=2 and Account.name LIKE '"+X+"'";
 		onSuccess=totalSalesNumber;
 		break;
