@@ -1,3 +1,9 @@
 .idea/
 node_modules/**
 .env
+app/proxy-unused.js
+app/queries-unused.js
+app/router-unused.js
+app/app-unused.js
+services/**
+queries-unused.js

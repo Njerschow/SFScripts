@@ -14,19 +14,20 @@
         		"query": "/services/data/v20.0/query"
       		}
 		},
-		"SFAuthParams" : {
+		"authParams" : {
 			"response_type" : "code",
-			"client_id" : "CLIENT_ID",
-			"redirect_uri"  : "http://localhost:3000/token"
+			"redirect_uri"  : "http://localhost:3000/sf/token"
 		},
-		"SFTokenParams" : {
+		"tokenParams" : {
 			"grant_type"    : "authorization_code",
-			"client_secret" : "CLIENT_SECRET",
-			"client_id"     : "CLIENT_ID",
 			"redirect_uri"  : "http://localhost:3000/query" 
 		},
-		"SFQueryParams" : {
+		"queryParams" : {
 			"q" : "SELECT Name, Amount, CloseDate, TotalOpportunityQuantity, ForecastCategoryName, StageName FROM Opportunity"
 		}
+	},
+	"express" : {
+		"PORT" : 3000,
+		"HOST" : "localhost"
 	}
 }

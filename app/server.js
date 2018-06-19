@@ -1,3 +1,42 @@
+const config = require('./config.js');
+const app = require('./index.js')(config.salesforce);
+
+var bole = require('bole');
+
+bole.output({level: 'debug', stream: process.stdout});
+var log = bole('server');
+
+log.info('server process starting');
+
+app.listen(config.express.port, config.express.ip, function(error) {
+  if (error) {
+    log.error('Unable to begin listening\n', error);
+    process.exit(10);
+  } else {
+    log.info('express server listening on ' + config.express.host + ':' + config.express.port);
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+
+
+
+
 const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -103,5 +142,5 @@ app.use('/token', proxy(router.tokenURL.hostname, { //preserveHostHdr?
 app.listen(port);
 console.log("listening on port "+port);
 
-
+*/
 
