@@ -2,8 +2,7 @@ var express = require('express');
 var path = require('path');
 
 function checkToken(req,res,next) {
-	console.log(this.access_token);
-	if (!this.access_token) {
+	if (!this.access_token && !(/^\/sf\/auth\/?/.test(req.path))) {
 		res.redirect('/sf/auth');
 	} 
 	next();
@@ -11,7 +10,6 @@ function checkToken(req,res,next) {
 
 function home(req, res) {
 	res.sendFile(path.join(__dirname + './../../public/query.html'));
-	
 }
 
 
