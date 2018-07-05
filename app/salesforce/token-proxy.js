@@ -1,25 +1,13 @@
 const proxy = require('http-proxy-middleware');
-const fs = require('fs');
-const join = require('path').join;
 const url = require('url');
+const utility = require('./../utility.js');
 
 module.exports = function(options) {
 
     if (!options.htmlFile) {
         options.htmlFile = "";
-        fs.readFile(join(__dirname + './../../public/query.html'), function(err, data) {
-            if (!err) {
-                options.htmlFile=data.toString();
-            }
-        });
+        utility.readQueryHTML(options);
     }
-
-	let bodyResolver = function(object) {
-        let body = Object.keys( object ).map(function( key ) {
-            return encodeURIComponent( key ) + '=' + encodeURIComponent( object[ key ])
-        }).join('&');
-        return body;
-    };
 
     var proxyoptions = {
         target: options.tokenURL.protocol+'//'+options.tokenURL.hostname, // target host
@@ -33,7 +21,7 @@ module.exports = function(options) {
             req.method = 'POST';
             proxyReq.method = 'POST';
 
-            body = bodyResolver({...options.tokenParams,...req.query});
+            body = utility.URLEncode({...options.tokenParams,...req.query});
 
             proxyReq.setHeader('Accept', 'application/json');
             proxyReq.setHeader('Content-Type', 'application/x-www-form-urlencoded');
